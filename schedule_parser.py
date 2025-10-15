@@ -283,11 +283,14 @@ def get_day_schedule(faculty: str, course: int, group: str, command: str):
         
         lessons = find_schedule_for_date(schedule_data, group_column, target_date)
         
-        if lessons:
-            print(f"✅ Найдено расписание в {'четной' if is_even else 'нечетной'} неделе")
+        # Проверяем, что функция вернула не None (т.е. дата в файле была найдена)
+        if lessons is not None:
+            print(f"✅ Найдена дата в {'четной' if is_even else 'нечетной'} неделе. Пар: {len(lessons)}")
+            # Теперь format_schedule будет вызвана даже с пустым списком пар
             return format_schedule(lessons, is_even, target_date, group)
         else:
-            print(f"❌ В {'четной' if is_even else 'нечетной'} неделе расписание не найдено")
+            # Если lessons is None, значит дата в файле не найдена, и мы просто ищем в следующем файле
+            print(f"❌ В файле {'четной' if is_even else 'нечетной'} недели дата не найдена")
     
     return "❌ Расписание на выбранную дату не найдено"
 
@@ -344,4 +347,5 @@ def format_schedule(lessons, is_even, date, group):
             result.append("")
 
     return "\n".join(result)
+
 
