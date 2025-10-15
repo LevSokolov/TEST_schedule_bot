@@ -247,10 +247,19 @@ def get_day_schedule(faculty: str, course: int, group: str, command: str):
     else:
         days_map = {"пн": 0, "вт": 1, "ср": 2, "чт": 3, "пт": 4, "сб": 5}
         today = now.weekday()
-        shift = (days_map.get(command, 0) - today) % 7
-        if shift <= 0:
-            shift += 7
-        target_date = now + timedelta(days=shift)
+        target_weekday = days_map.get(command, today)
+        
+        # Вычисляем разницу дней до целевого дня недели
+        days_ahead = target_weekday - today
+        
+        # Если целевой день уже прошел на этой неделе, берем следующую неделю
+        if days_ahead < 0:
+            days_ahead += 7
+        # Если это сегодня, оставляем сегодня
+        elif days_ahead == 0:
+            target_date = now
+        else:
+            target_date = now + timedelta(days=days_ahead)
     
     print(f"🎯 Ищем расписание на: {target_date.strftime('%d.%m.%Y')}")
     
