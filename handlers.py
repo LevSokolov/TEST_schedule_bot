@@ -1,4 +1,4 @@
-from aiogram import Router, F, Bot
+from aiogram import Router, F, Bot, types
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -387,3 +387,4 @@ async def me_cmd(message: Message):
         response = "Вы еще не зарегистрированы. Используйте /start для регистрации."
     
     await message.answer(response)
+
