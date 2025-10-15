@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
@@ -10,7 +10,19 @@ from schedule_parser import get_day_schedule, get_available_groups
 import os
 
 router = Router()
-bot = Bot(token=os.getenv("BOT_TOKEN") or "8374624798:AAFNHcfxnWEz5hKHsAh5BAfr_mFB16nJ8qw")
+bot = Bot(token=os.getenv("BOT_TOKEN"))
+
+# ID канала для проверки подписки
+CHANNEL_USERNAME = "@smartschedule0"
+
+# Клавиатура для проверки подписки
+def get_subscription_keyboard():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📢 Подписаться на канал", url=f"https://t.me/{CHANNEL_USERNAME[1:]}")],
+            [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_subscription")]
+        ]
+    )
 
 # Клавиатура для факультетов
 def get_faculties_keyboard():
@@ -54,9 +66,52 @@ def get_schedule_keyboard():
         one_time_keyboard=False
     )
 
+async def check_user_subscription(user_id: int) -> bool:
+    """Проверяет, подписан ли пользователь на канал"""
+    try:
+        chat_member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        return chat_member.status in ['member', 'administrator', 'creator']
+    except Exception as e:
+        print(f"Ошибка проверки подписки: {e}")
+        return False
+
+# Обработчик проверки подписки
+@router.callback_query(F.data == "check_subscription")
+async def check_subscription_callback(callback_query: types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    
+    if await check_user_subscription(user_id):
+        await callback_query.message.edit_text(
+            "✅ Спасибо за подписку! Теперь вы можете пользоваться ботом.",
+            reply_markup=None
+        )
+        
+        # Показываем клавиатуру расписания, если пользователь уже зарегистрирован
+        user_info = await get_user_data(user_id)
+        if user_info:
+            await callback_query.message.answer(
+                "Теперь вы можете посмотреть расписание:",
+                reply_markup=get_schedule_keyboard()
+            )
+        else:
+            await callback_query.message.answer(
+                "Для начала работы используйте команду /start",
+                reply_markup=ReplyKeyboardRemove()
+            )
+    else:
+        await callback_query.answer("❌ Вы еще не подписались на канал!", show_alert=True)
+
 # Старт регистрации
 @router.message(Command("start"))
 async def start_cmd(message: Message, state: FSMContext):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     # Удаляем старые данные пользователя при перезапуске
     user_id = message.from_user.id
     old_user_data = await get_user_data(user_id)
@@ -87,6 +142,14 @@ async def start_cmd(message: Message, state: FSMContext):
 # Выбор факультета
 @router.message(Registration.choosing_faculty, F.text.in_(FACULTIES.keys()))
 async def faculty_chosen(message: Message, state: FSMContext):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     faculty = message.text
     await state.update_data(faculty=faculty)
     await message.answer(
@@ -98,6 +161,14 @@ async def faculty_chosen(message: Message, state: FSMContext):
 # Неверный выбор факультета
 @router.message(Registration.choosing_faculty)
 async def wrong_faculty(message: Message):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     await message.answer(
         "Пожалуйста, выберите факультет из предложенных вариантов:",
         reply_markup=get_faculties_keyboard()
@@ -106,6 +177,14 @@ async def wrong_faculty(message: Message):
 # Выбор курса
 @router.message(Registration.choosing_course, F.text.in_(["1", "2", "3", "4", "5"]))
 async def course_chosen(message: Message, state: FSMContext):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     course = message.text
     data = await state.get_data()
     faculty = data['faculty']
@@ -148,6 +227,14 @@ async def course_chosen(message: Message, state: FSMContext):
 # Неверный выбор курса
 @router.message(Registration.choosing_course)
 async def wrong_course(message: Message):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     await message.answer(
         "Пожалуйста, выберите курс от 1 до 5:",
         reply_markup=get_courses_keyboard()
@@ -156,6 +243,14 @@ async def wrong_course(message: Message):
 # Выбор группы
 @router.message(Registration.choosing_group)
 async def group_chosen(message: Message, state: FSMContext):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     group = message.text
     data = await state.get_data()
     available_groups = data.get('available_groups', [])
@@ -212,6 +307,15 @@ async def group_chosen(message: Message, state: FSMContext):
 @router.message(F.text.lower().in_({"сегодня", "завтра", "пн", "вт", "ср", "чт", "пт", "сб"}))
 async def day_selected(message: Message):
     user_id = message.from_user.id
+    
+    # Проверяем подписку
+    if not await check_user_subscription(user_id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     user_info = await get_user_data(user_id)
     
     if not user_info:
@@ -236,6 +340,14 @@ async def day_selected(message: Message):
 # Команда для сброса регистрации
 @router.message(Command("reset"))
 async def reset_cmd(message: Message, state: FSMContext):
+    # Проверяем подписку
+    if not await check_user_subscription(message.from_user.id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     user_id = message.from_user.id
     if await remove_user_data(user_id):
         await message.answer(
@@ -253,6 +365,15 @@ async def reset_cmd(message: Message, state: FSMContext):
 @router.message(Command("me"))
 async def me_cmd(message: Message):
     user_id = message.from_user.id
+    
+    # Проверяем подписку
+    if not await check_user_subscription(user_id):
+        await message.answer(
+            "⚠️ Для использования бота необходимо подписаться на наш канал!",
+            reply_markup=get_subscription_keyboard()
+        )
+        return
+    
     user_info = await get_user_data(user_id)
     
     if user_info:
