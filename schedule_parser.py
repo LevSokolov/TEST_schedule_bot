@@ -238,19 +238,30 @@ def find_schedule_for_date(schedule_data: list, group_column: int, target_date: 
 def get_day_schedule(faculty: str, course: int, group: str, command: str):
     """Основная функция для получения расписания"""
     now = datetime.now(TZ)
-    
+    target_date = now
+
     # Определяем целевую дату
     if command == "сегодня":
         target_date = now
     elif command == "завтра":
         target_date = now + timedelta(days=1)
     else:
+        # ===== ИЗМЕНЕННАЯ ЛОГИКА =====
         days_map = {"пн": 0, "вт": 1, "ср": 2, "чт": 3, "пт": 4, "сб": 5}
-        today = now.weekday()
-        shift = (days_map.get(command, 0) - today) % 7
-        if shift <= 0:
-            shift += 7
-        target_date = now + timedelta(days=shift)
+        today_weekday = now.weekday()  # Сегодняшний день недели (0=Пн, 6=Вс)
+        target_weekday = days_map.get(command)
+
+        if target_weekday is not None:
+            # Рассчитываем разницу в днях
+            shift = target_weekday - today_weekday
+            
+            # Если день уже прошел на этой неделе (отрицательный сдвиг),
+            # то ищем его на следующей неделе.
+            if shift < 0:
+                shift += 7
+            
+            target_date = now + timedelta(days=shift)
+        # ===============================
     
     print(f"🎯 Ищем расписание на: {target_date.strftime('%d.%m.%Y')}")
     
