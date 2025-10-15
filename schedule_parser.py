@@ -233,7 +233,7 @@ def find_schedule_for_date(schedule_data: list, group_column: int, target_date: 
         i += 1
     
     print(f"❌ Дата {search_date.strftime('%d.%m.%Y')} не найдена в расписании")
-    return []
+    return None
 
 def get_day_schedule(faculty: str, course: int, group: str, command: str):
     """Основная функция для получения расписания"""
@@ -344,3 +344,4 @@ def format_schedule(lessons, is_even, date, group):
             result.append("")
 
     return "\n".join(result)
+
