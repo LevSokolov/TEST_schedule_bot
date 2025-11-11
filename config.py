@@ -60,44 +60,82 @@ SCHEDULE_URLS = {
         "Строительный факультет": {
             1: "https://bb.usurt.ru/bbcswebdav/xid-20933630_1",
             2: "https://bb.usurt.ru/bbcswebdav/xid-23861425_1",
-            3: "URL_СФ_3_КУРС_НЕЧЕТНАЯ", # <--- ДОБАВЬТЕ ССЫЛКУ
-            4: "URL_СФ_4_КУРС_НЕЧЕТНАЯ", # <--- ДОБАВЬТЕ ССЫЛКУ
-            5: "URL_СФ_5_КУРС_НЕЧЕТНАЯ", # <--- ДОБАВЬТЕ ССЫЛКУ
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23862320_1", # <--- ДОБАВЬТЕ ССЫЛКУ
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23863116_1", # <--- ДОБАВЬТЕ ССЫЛКУ
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23863376_1", # <--- ДОБАВЬТЕ ССЫЛКУ
         },
         "Факультет управления процессами перевозок": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ФУПП
+            1: "https://bb.usurt.ru/bbcswebdav/xid-20933635_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23861426_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23862321_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23863377_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23864226_1",
         },
         "Факультет экономики и управления": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ФЭУ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-20933640_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23861427_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23862322_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23863121_1",
         },
         "Электромеханический факультет": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ЭМФ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-20933644_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23861428_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23862323_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23863126_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23863378_1",
         },
         "Электротехнический факультет": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ЭТФ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-20933649_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23861429_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23862324_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23863127_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23863379_1",
         }
     },
     "Четная неделя": {
         "ДиА": {
-            1: "URL_ДИА_1_КУРС_ЧЕТНАЯ", # <--- ДОБАВЬТЕ ССЫЛКУ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23870736_1",
         },
         "Механический факультет": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ МФ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23870737_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23870789_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23872118_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23879494_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23882477_1",
         },
         "Строительный факультет": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ СФ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23872117_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23870790_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23872119_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23879495_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23883756_1",
         },
         "Факультет управления процессами перевозок": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ФУПП
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23870739_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23870791_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23872120_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23879496_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23886773_1",
         },
         "Факультет экономики и управления": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ФЭУ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23873014_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23870793_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23872121_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23879497_1",
         },
         "Электромеханический факультет": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ЭМФ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23870741_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23870794_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23872122_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23879498_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23882478_1",
         },
         "Электротехнический факультет": {
-            # <--- ДОБАВЬТЕ ССЫЛКИ ДЛЯ ЭТФ
+            1: "https://bb.usurt.ru/bbcswebdav/xid-23870742_1",
+            2: "https://bb.usurt.ru/bbcswebdav/xid-23870795_1",
+            3: "https://bb.usurt.ru/bbcswebdav/xid-23872123_1",
+            4: "https://bb.usurt.ru/bbcswebdav/xid-23879499_1",
+            5: "https://bb.usurt.ru/bbcswebdav/xid-23883107_1",
         }
     }
 }
@@ -181,3 +219,4 @@ async def get_user_data(user_id):
         return None
     finally:
         await conn.close()
+
