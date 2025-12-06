@@ -190,7 +190,7 @@ async def course_chosen(message: Message, state: FSMContext, bot: Bot): # ✅ И
     data = await state.get_data()
     faculty = data['faculty']
     
-    groups = get_available_groups(faculty, int(course))
+    groups = await get_available_groups(faculty, int(course))
     
     if not groups:
         await message.answer(
@@ -306,7 +306,6 @@ async def group_chosen(message: Message, state: FSMContext, bot: Bot): # ✅ И�
 async def day_selected(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
     user_id = message.from_user.id
     
-    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, user_id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -325,7 +324,8 @@ async def day_selected(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Д
     
     text = message.text.lower()
     
-    schedule_text = get_day_schedule(
+    # ✅ ГЛАВНОЕ ИЗМЕНЕНИЕ: ДОБАВЛЯЕМ AWAIT
+    schedule_text = await get_day_schedule(
         user_info['faculty'],
         int(user_info['course']),
         user_info['group'],
@@ -384,3 +384,4 @@ async def me_cmd(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Доба
         response = "Вы еще не зарегистрированы. Используйте /start для регистрации."
     
     await message.answer(response)
+
