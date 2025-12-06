@@ -50,7 +50,6 @@ def parse_russian_date(date_str: str):
                     if month:
                         now = datetime.now(TZ)
                         year = now.year
-                        # Если дата уже прошла в этом году, берем следующий год
                         if month < now.month or (month == now.month and day < now.day):
                             year += 1
                         return datetime(year, month, day)
@@ -118,6 +117,26 @@ def get_schedule_urls(faculty: str, course: int, is_even: bool) -> list:
         pass
     return []
 
+# ✅ ВОЗВРАЩЕННАЯ НА МЕСТО ФУНКЦИЯ
+async def get_available_groups(faculty: str, course: int) -> list:
+    """Получает список доступных групп, используя кэшированные данные."""
+    for is_even in [False, True]:
+        urls = get_schedule_urls(faculty, course, is_even)
+        for url in urls:
+            schedule_data = await get_schedule_data_from_url(url)
+            if not schedule_data:
+                continue
+            
+            for row in schedule_data:
+                if len(row) > 2 and "день" in str(row[0]).lower() and "часы" in str(row[1]).lower():
+                    groups = [
+                        str(cell).strip() for cell in row[2:] 
+                        if str(cell).strip() and "день" not in str(cell).lower() and "часы" not in str(cell).lower()
+                    ]
+                    if groups:
+                        return groups
+    return []
+
 
 def find_group_column(schedule_data: list, group_name: str) -> int:
     """Находит индекс столбца для группы."""
@@ -145,13 +164,11 @@ def find_schedule_for_date(schedule_data: list, group_column: int, target_date: 
         
         parsed_date = parse_russian_date(str(row[0]))
         if parsed_date and parsed_date.date() == search_date:
-            # Дата найдена, теперь собираем все пары для этого дня
             lessons = []
             current_time = None
             for j in range(i, len(schedule_data)):
                 current_row = schedule_data[j]
                 
-                # Проверяем, не вышли ли мы за пределы текущей даты
                 if j > i and current_row and current_row[0]:
                     next_date = parse_russian_date(str(current_row[0]))
                     if next_date and next_date.date() != search_date:
@@ -166,13 +183,13 @@ def find_schedule_for_date(schedule_data: list, group_column: int, target_date: 
                     subject_lines = [line.strip().lstrip('-').strip() for line in str(subject_cell).split('\n') if line.strip()]
                     if subject_lines:
                         lessons.append((current_time, subject_lines))
-            return lessons  # Возвращаем список пар (может быть пустым)
+            return lessons
             
-    return None # Дата в файле не найдена
+    return None
 
 
 async def get_day_schedule(faculty: str, course: int, group: str, command: str):
-    """Основная функция для получения расписания с новой логикой."""
+    """Основная функция для получения расписания с исправленной логикой."""
     now = datetime.now(TZ)
     target_date = now
 
@@ -188,7 +205,6 @@ async def get_day_schedule(faculty: str, course: int, group: str, command: str):
     found_lessons = None
     found_week_is_even = None
     
-    # Пытаемся найти расписание в файлах
     for is_even in [False, True]:
         urls = get_schedule_urls(faculty, course, is_even)
         for url in urls:
@@ -203,19 +219,15 @@ async def get_day_schedule(faculty: str, course: int, group: str, command: str):
             lessons = find_schedule_for_date(schedule_data, group_column, target_date)
             
             if lessons is not None:
-                # Нашли дату! Неважно, есть пары или нет.
                 found_lessons = lessons
                 found_week_is_even = is_even
-                break  # Прерываем внутренний цикл
+                break
         if found_lessons is not None:
-            break  # Прерываем внешний цикл
+            break
     
-    # Формируем ответ в любом случае
     if found_lessons is not None:
-        # Если дата была найдена, используем неделю из файла
         return format_schedule(found_lessons, found_week_is_even, target_date, group)
     else:
-        # Если дата не найдена (воскресенье, праздник), вычисляем неделю сами
         is_target_week_even = (target_date.isocalendar()[1] % 2 == 0)
         return format_schedule([], is_target_week_even, target_date, group)
 
@@ -245,7 +257,6 @@ def format_schedule(lessons, is_even, date, group):
         for time, subject_lines in sorted(unique_lessons, key=time_key):
             result.append(f"*⏰ {escape_markdown(time)}*")
             for line in subject_lines:
-                # ✅ ИЗМЕНЕНИЕ: Убраны символы "_" для курсива
                 result.append(f"• {escape_markdown(line)}")
             result.append("")
 
