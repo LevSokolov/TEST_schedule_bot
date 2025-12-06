@@ -6,10 +6,12 @@ from aiogram.enums import ParseMode
 
 from config import FACULTIES, GROUP_CHAT_ID, update_user_data, remove_user_data, get_user_data
 from states import Registration
-# ✅ ИЗМЕНЕНИЕ: Импортируем асинхронные функции
-from schedule_parser import get_day_schedule, get_available_groups 
+from schedule_parser import get_day_schedule, get_available_groups
+import os
 
 router = Router()
+
+# ❌ УДАЛЯЕМ ЭТУ СТРОКУ: bot = Bot(token=os.getenv("BOT_TOKEN"))
 
 # ID канала для проверки подписки
 CHANNEL_USERNAME = "@smartschedule0"
@@ -25,19 +27,15 @@ def get_subscription_keyboard():
 
 # Клавиатура для факультетов
 def get_faculties_keyboard():
-    buttons = [
-        [KeyboardButton(text=faculty)] for faculty in FACULTIES.keys()
-    ]
-    # Для улучшения вида можно сделать по 2 кнопки в ряд
-    # buttons = []
-    # row = []
-    # for faculty in FACULTIES.keys():
-    #     row.append(KeyboardButton(text=faculty))
-    #     if len(row) == 2:
-    #         buttons.append(row)
-    #         row = []
-    # if row:
-    #     buttons.append(row)
+    buttons = []
+    row = []
+    for faculty in FACULTIES.keys():
+        row.append(KeyboardButton(text=faculty))
+        if len(row) == 2:  # По 2 кнопки в ряду
+            buttons.append(row)
+            row = []
+    if row:  # Добавляем оставшиеся кнопки
+        buttons.append(row)
     return ReplyKeyboardMarkup(
         keyboard=buttons,
         resize_keyboard=True,
@@ -69,6 +67,7 @@ def get_schedule_keyboard():
         one_time_keyboard=False
     )
 
+# ✅ ИЗМЕНЕНИЕ: Теперь функция принимает объект bot как аргумент
 async def check_user_subscription(bot: Bot, user_id: int) -> bool:
     """Проверяет, подписан ли пользователь на канал"""
     try:
@@ -80,9 +79,10 @@ async def check_user_subscription(bot: Bot, user_id: int) -> bool:
 
 # Обработчик проверки подписки
 @router.callback_query(F.data == "check_subscription")
-async def check_subscription_callback(callback_query: types.CallbackQuery, bot: Bot):
+async def check_subscription_callback(callback_query: types.CallbackQuery, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
     user_id = callback_query.from_user.id
     
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if await check_user_subscription(bot, user_id):
         await callback_query.message.edit_text(
             "✅ Спасибо за подписку! Теперь вы можете пользоваться ботом.",
@@ -105,7 +105,8 @@ async def check_subscription_callback(callback_query: types.CallbackQuery, bot: 
 
 # Старт регистрации
 @router.message(Command("start"))
-async def start_cmd(message: Message, state: FSMContext, bot: Bot):
+async def start_cmd(message: Message, state: FSMContext, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -126,6 +127,7 @@ async def start_cmd(message: Message, state: FSMContext, bot: Bot):
                 f"Курс: {old_user_data.get('course', 'Неизвестно')}\n"
                 f"Группа: {old_user_data.get('group', 'Неизвестно')}"
             )
+            # ✅ ИЗМЕНЕНИЕ: Используем bot из аргументов
             await bot.send_message(chat_id=GROUP_CHAT_ID, text=admin_message)
         except Exception as e:
             print(f"Не удалось отправить сообщение об удалении: {e}")
@@ -140,7 +142,8 @@ async def start_cmd(message: Message, state: FSMContext, bot: Bot):
 
 # Выбор факультета
 @router.message(Registration.choosing_faculty, F.text.in_(FACULTIES.keys()))
-async def faculty_chosen(message: Message, state: FSMContext, bot: Bot):
+async def faculty_chosen(message: Message, state: FSMContext, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -158,7 +161,8 @@ async def faculty_chosen(message: Message, state: FSMContext, bot: Bot):
 
 # Неверный выбор факультета
 @router.message(Registration.choosing_faculty)
-async def wrong_faculty(message: Message, bot: Bot):
+async def wrong_faculty(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -173,7 +177,8 @@ async def wrong_faculty(message: Message, bot: Bot):
 
 # Выбор курса
 @router.message(Registration.choosing_course, F.text.in_(["1", "2", "3", "4", "5"]))
-async def course_chosen(message: Message, state: FSMContext, bot: Bot):
+async def course_chosen(message: Message, state: FSMContext, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -185,8 +190,7 @@ async def course_chosen(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     faculty = data['faculty']
     
-    # ✅ ИЗМЕНЕНИЕ: Добавляем await
-    groups = await get_available_groups(faculty, int(course))
+    groups = get_available_groups(faculty, int(course))
     
     if not groups:
         await message.answer(
@@ -197,7 +201,16 @@ async def course_chosen(message: Message, state: FSMContext, bot: Bot):
     
     await state.update_data(course=course, available_groups=groups)
     
-    group_buttons = [[KeyboardButton(text=group)] for group in groups]
+    group_buttons = []
+    row = []
+    for group in groups:
+        row.append(KeyboardButton(text=group))
+        if len(row) == 3:
+            group_buttons.append(row)
+            row = []
+    if row:
+        group_buttons.append(row)
+    
     group_keyboard = ReplyKeyboardMarkup(
         keyboard=group_buttons,
         resize_keyboard=True,
@@ -212,7 +225,8 @@ async def course_chosen(message: Message, state: FSMContext, bot: Bot):
 
 # Неверный выбор курса
 @router.message(Registration.choosing_course)
-async def wrong_course(message: Message, bot: Bot):
+async def wrong_course(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -227,7 +241,8 @@ async def wrong_course(message: Message, bot: Bot):
 
 # Выбор группы
 @router.message(Registration.choosing_group)
-async def group_chosen(message: Message, state: FSMContext, bot: Bot):
+async def group_chosen(message: Message, state: FSMContext, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -266,9 +281,15 @@ async def group_chosen(message: Message, state: FSMContext, bot: Bot):
     )
     
     try:
+        # ✅ ИЗМЕНЕНИЕ: Используем bot из аргументов
         await bot.send_message(chat_id=GROUP_CHAT_ID, text=admin_message)
     except Exception as e:
         print(f"Не удалось отправить сообщение в группу: {e}")
+        try:
+            # ✅ ИЗМЕНЕНИЕ: Используем bot из аргументов
+            await bot.send_message(chat_id=str(GROUP_CHAT_ID), text=admin_message)
+        except Exception as e2:
+            print(f"Не удалось отправить сообщение в группу (строка): {e2}")
     
     await message.answer(
         f"✅ Регистрация завершена!\n"
@@ -280,11 +301,12 @@ async def group_chosen(message: Message, state: FSMContext, bot: Bot):
     )
     await state.clear()
 
-# Обработчик расписания
+# Обработчик расписания для зарегистрированных пользователей
 @router.message(F.text.lower().in_({"сегодня", "завтра", "пн", "вт", "ср", "чт", "пт", "сб"}))
-async def day_selected(message: Message, bot: Bot):
+async def day_selected(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
     user_id = message.from_user.id
     
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, user_id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -303,8 +325,7 @@ async def day_selected(message: Message, bot: Bot):
     
     text = message.text.lower()
     
-    # ✅ ИЗМЕНЕНИЕ: Добавляем await
-    schedule_text = await get_day_schedule(
+    schedule_text = get_day_schedule(
         user_info['faculty'],
         int(user_info['course']),
         user_info['group'],
@@ -313,9 +334,10 @@ async def day_selected(message: Message, bot: Bot):
     
     await message.answer(schedule_text, parse_mode=ParseMode.MARKDOWN_V2)
 
-# Команда сброса
+# Команда для сброса регистрации
 @router.message(Command("reset"))
-async def reset_cmd(message: Message, state: FSMContext, bot: Bot):
+async def reset_cmd(message: Message, state: FSMContext, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, message.from_user.id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
@@ -336,11 +358,12 @@ async def reset_cmd(message: Message, state: FSMContext, bot: Bot):
         )
     await state.clear()
 
-# Команда "me"
+# Команда для просмотра своей текущей регистрации
 @router.message(Command("me"))
-async def me_cmd(message: Message, bot: Bot):
+async def me_cmd(message: Message, bot: Bot): # ✅ ИЗМЕНЕНИЕ: Добавляем bot
     user_id = message.from_user.id
     
+    # ✅ ИЗМЕНЕНИЕ: Передаем bot в функцию
     if not await check_user_subscription(bot, user_id):
         await message.answer(
             "⚠️ Для использования бота необходимо подписаться на наш канал!",
