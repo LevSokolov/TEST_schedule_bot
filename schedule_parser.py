@@ -242,7 +242,7 @@ def format_schedule(lessons, is_even, date, group):
     ]
     
     if not lessons:
-        result.append("🎉 *Пар нет, можно отдыхать!*")
+        result.append("🎉 *Пар нет, можно отдыхать\\!*")
     else:
         unique_lessons = []
         [unique_lessons.append(x) for x in lessons if x not in unique_lessons]
@@ -261,3 +261,4 @@ def format_schedule(lessons, is_even, date, group):
             result.append("")
 
     return "\n".join(result)
+
