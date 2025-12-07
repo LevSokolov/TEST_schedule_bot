@@ -7,7 +7,7 @@ import aiohttp
 import openpyxl
 import xlrd
 
-from config import SCHEDULE_URLS, TZ
+from config import SCHEDULE_URLS, TZ, FACULTIES
 
 # ===== ПЕРЕМЕННЫЕ ДЛЯ КЭШИРОВАНИЯ =====
 SCHEDULE_CACHE = {} 
@@ -93,15 +93,12 @@ async def get_schedule_data_from_url(url: str):
     if url in SCHEDULE_CACHE:
         cached_time, cached_data = SCHEDULE_CACHE[url]
         if current_time - cached_time < CACHE_DURATION_SECONDS:
-            print(f"✅ [Cache] Используем данные для {url}")
             return cached_data
     
-    print(f"📥 [Download] Загружаем свежие данные для {url}")
     new_data = await _load_and_parse_xls(url)
     
     if new_data:
         SCHEDULE_CACHE[url] = (current_time, new_data)
-        print(f"💾 [Cache] Сохранили свежие данные для {url}")
     
     return new_data
 
@@ -117,7 +114,7 @@ def get_schedule_urls(faculty: str, course: int, is_even: bool) -> list:
         pass
     return []
 
-# ✅ ВОЗВРАЩЕННАЯ НА МЕСТО ФУНКЦИЯ
+
 async def get_available_groups(faculty: str, course: int) -> list:
     """Получает список доступных групп, используя кэшированные данные."""
     for is_even in [False, True]:
@@ -189,7 +186,7 @@ def find_schedule_for_date(schedule_data: list, group_column: int, target_date: 
 
 
 async def get_day_schedule(faculty: str, course: int, group: str, command: str):
-    """Основная функция для получения расписания с исправленной логикой."""
+    """Основная функция для получения расписания группы."""
     now = datetime.now(TZ)
     target_date = now
 
@@ -202,28 +199,23 @@ async def get_day_schedule(faculty: str, course: int, group: str, command: str):
             shift += 7
         target_date = now + timedelta(days=shift)
     
-    found_lessons = None
-    found_week_is_even = None
+    found_lessons, found_week_is_even = None, None
     
     for is_even in [False, True]:
         urls = get_schedule_urls(faculty, course, is_even)
         for url in urls:
             schedule_data = await get_schedule_data_from_url(url)
-            if not schedule_data:
-                continue
+            if not schedule_data: continue
             
             group_column = find_group_column(schedule_data, group)
-            if group_column == -1:
-                continue
+            if group_column == -1: continue
             
             lessons = find_schedule_for_date(schedule_data, group_column, target_date)
             
             if lessons is not None:
-                found_lessons = lessons
-                found_week_is_even = is_even
+                found_lessons, found_week_is_even = lessons, is_even
                 break
-        if found_lessons is not None:
-            break
+        if found_lessons is not None: break
     
     if found_lessons is not None:
         return format_schedule(found_lessons, found_week_is_even, target_date, group)
@@ -233,7 +225,7 @@ async def get_day_schedule(faculty: str, course: int, group: str, command: str):
 
 
 def format_schedule(lessons, is_even, date, group):
-    """Форматирует расписание в текст (без курсива для пар)."""
+    """Форматирует расписание группы."""
     date_str = f"{RUS_DAYS_SHORT[date.weekday()]} {date.day} {RUS_MONTHS[date.month]}"
     result = [
         f"*📅 {('Четная' if is_even else 'Нечетная')} неделя*",
@@ -248,11 +240,8 @@ def format_schedule(lessons, is_even, date, group):
         [unique_lessons.append(x) for x in lessons if x not in unique_lessons]
         
         def time_key(lesson):
-            try:
-                h, m = map(int, lesson[0].split('-')[0].strip().split(':'))
-                return h * 60 + m
-            except:
-                return 0
+            try: return tuple(map(int, lesson[0].split('-')[0].strip().split(':')))
+            except: return (0, 0)
         
         for time, subject_lines in sorted(unique_lessons, key=time_key):
             result.append(f"*⏰ {escape_markdown(time)}*")
@@ -262,3 +251,96 @@ def format_schedule(lessons, is_even, date, group):
 
     return "\n".join(result)
 
+# ===== НОВЫЕ ФУНКЦИИ ДЛЯ ПОИСКА ПРЕПОДАВАТЕЛЯ =====
+
+async def get_teacher_schedule(teacher_name: str, target_date: datetime):
+    """
+    Ищет расписание преподавателя по всем файлам на указанную дату.
+    """
+    all_findings = []
+    
+    # Перебираем все URL из конфига
+    for week_type, faculties in SCHEDULE_URLS.items():
+        for faculty, courses in faculties.items():
+            for course, urls in courses.items():
+                url_list = [urls] if isinstance(urls, str) else urls
+                for url in url_list:
+                    schedule_data = await get_schedule_data_from_url(url)
+                    if not schedule_data:
+                        continue
+                    
+                    # Находим строку с группами
+                    header_row = -1
+                    groups = {} # {col_index: group_name}
+                    for i, row in enumerate(schedule_data):
+                        if len(row) > 2 and "день" in str(row[0]).lower() and "часы" in str(row[1]).lower():
+                            header_row = i
+                            for col, cell in enumerate(row):
+                                if col > 1 and str(cell).strip():
+                                    groups[col] = str(cell).strip()
+                            break
+                    
+                    if header_row == -1:
+                        continue
+
+                    # Ищем нужную дату
+                    for i, row in enumerate(schedule_data):
+                        parsed_date = parse_russian_date(str(row[0]))
+                        if parsed_date and parsed_date.date() == target_date.date():
+                            current_time = None
+                            for j in range(i, len(schedule_data)):
+                                current_row = schedule_data[j]
+
+                                if j > i and current_row and current_row[0]:
+                                    next_date = parse_russian_date(str(current_row[0]))
+                                    if next_date and next_date.date() != target_date.date():
+                                        break
+                                
+                                time_cell = current_row[1] if len(current_row) > 1 else ""
+                                if time_cell and str(time_cell).strip():
+                                    current_time = str(time_cell).strip()
+
+                                # Ищем преподавателя в ячейках
+                                for col, group_name in groups.items():
+                                    if col < len(current_row) and teacher_name.lower() in str(current_row[col]).lower():
+                                        subject_lines = [
+                                            line.strip().lstrip('-').strip() 
+                                            for line in str(current_row[col]).split('\n') if line.strip()
+                                        ]
+                                        if current_time and subject_lines:
+                                            all_findings.append({
+                                                "time": current_time,
+                                                "group": group_name,
+                                                "details": subject_lines
+                                            })
+
+    return format_teacher_schedule(teacher_name, target_date, all_findings)
+
+def format_teacher_schedule(teacher_name, date, findings):
+    """Форматирует найденное расписание преподавателя."""
+    date_str = f"{RUS_DAYS_SHORT[date.weekday()]} {date.day} {RUS_MONTHS[date.month]}"
+    
+    result = [
+        f"*{escape_markdown('🧑‍🏫 Расписание для преподавателя:')}*",
+        f"*{escape_markdown(teacher_name)}*",
+        f"\n🟢__*{escape_markdown(date_str)}*__\n"
+    ]
+    
+    if not findings:
+        result.append("❌ *На указанную дату пары не найдены\\.*")
+    else:
+        # Убираем дубликаты и сортируем
+        unique_findings = [dict(t) for t in {tuple(d.items()) for d in findings}]
+        
+        def time_key(finding):
+            try: return tuple(map(int, finding['time'].split('-')[0].strip().split(':')))
+            except: return (0, 0)
+        
+        for item in sorted(unique_findings, key=time_key):
+            result.append(f"*⏰ {escape_markdown(item['time'])}*")
+            result.append(f"👥 *Группа:* {escape_markdown(item['group'])}")
+            for line in item['details']:
+                result.append(f"• {escape_markdown(line)}")
+            result.append("")
+            
+    return "\n".join(result)
