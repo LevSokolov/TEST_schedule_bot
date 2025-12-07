@@ -121,8 +121,7 @@ async def get_available_groups(faculty: str, course: int) -> list:
         urls = get_schedule_urls(faculty, course, is_even)
         for url in urls:
             schedule_data = await get_schedule_data_from_url(url)
-            if not schedule_data:
-                continue
+            if not schedule_data: continue
             
             for row in schedule_data:
                 if len(row) > 2 and "день" in str(row[0]).lower() and "часы" in str(row[1]).lower():
@@ -130,15 +129,13 @@ async def get_available_groups(faculty: str, course: int) -> list:
                         str(cell).strip() for cell in row[2:] 
                         if str(cell).strip() and "день" not in str(cell).lower() and "часы" not in str(cell).lower()
                     ]
-                    if groups:
-                        return groups
+                    if groups: return groups
     return []
 
 
 def find_group_column(schedule_data: list, group_name: str) -> int:
     """Находит индекс столбца для группы."""
-    if not schedule_data:
-        return -1
+    if not schedule_data: return -1
     for row in schedule_data:
         if len(row) > 2 and "день" in str(row[0]).lower() and "часы" in str(row[1]).lower():
             for col_idx, cell in enumerate(row):
@@ -150,14 +147,12 @@ def find_group_column(schedule_data: list, group_name: str) -> int:
 
 def find_schedule_for_date(schedule_data: list, group_column: int, target_date: datetime):
     """Ищет расписание на конкретную дату в данных файла."""
-    if not schedule_data or group_column < 0:
-        return None
+    if not schedule_data or group_column < 0: return None
     
     search_date = target_date.date()
     
     for i, row in enumerate(schedule_data):
-        if not row or not row[0]:
-            continue
+        if not row or not row[0]: continue
         
         parsed_date = parse_russian_date(str(row[0]))
         if parsed_date and parsed_date.date() == search_date:
@@ -168,8 +163,7 @@ def find_schedule_for_date(schedule_data: list, group_column: int, target_date: 
                 
                 if j > i and current_row and current_row[0]:
                     next_date = parse_russian_date(str(current_row[0]))
-                    if next_date and next_date.date() != search_date:
-                        break
+                    if next_date and next_date.date() != search_date: break
                 
                 time_cell = current_row[1] if len(current_row) > 1 else ""
                 if time_cell and str(time_cell).strip():
@@ -195,8 +189,7 @@ async def get_day_schedule(faculty: str, course: int, group: str, command: str):
     elif command != "сегодня":
         days_map = {"пн": 0, "вт": 1, "ср": 2, "чт": 3, "пт": 4, "сб": 5}
         shift = days_map.get(command, now.weekday()) - now.weekday()
-        if shift < 0:
-            shift += 7
+        if shift < 0: shift += 7
         target_date = now + timedelta(days=shift)
     
     found_lessons, found_week_is_even = None, None
@@ -251,67 +244,54 @@ def format_schedule(lessons, is_even, date, group):
 
     return "\n".join(result)
 
-# ===== НОВЫЕ ФУНКЦИИ ДЛЯ ПОИСКА ПРЕПОДАВАТЕЛЯ =====
+# ===== ФУНКЦИИ ДЛЯ ПОИСКА ПРЕПОДАВАТЕЛЯ (ИСПРАВЛЕНЫ) =====
 
 async def get_teacher_schedule(teacher_name: str, target_date: datetime):
-    """
-    Ищет расписание преподавателя по всем файлам на указанную дату.
-    """
+    """Ищет расписание преподавателя по всем файлам на указанную дату."""
     all_findings = []
     
-    # Перебираем все URL из конфига
     for week_type, faculties in SCHEDULE_URLS.items():
+        is_even_week = (week_type == "Четная неделя")
         for faculty, courses in faculties.items():
             for course, urls in courses.items():
                 url_list = [urls] if isinstance(urls, str) else urls
                 for url in url_list:
                     schedule_data = await get_schedule_data_from_url(url)
-                    if not schedule_data:
-                        continue
+                    if not schedule_data: continue
                     
-                    # Находим строку с группами
-                    header_row = -1
-                    groups = {} # {col_index: group_name}
+                    groups = {}
                     for i, row in enumerate(schedule_data):
                         if len(row) > 2 and "день" in str(row[0]).lower() and "часы" in str(row[1]).lower():
-                            header_row = i
                             for col, cell in enumerate(row):
                                 if col > 1 and str(cell).strip():
                                     groups[col] = str(cell).strip()
                             break
                     
-                    if header_row == -1:
-                        continue
+                    if not groups: continue
 
-                    # Ищем нужную дату
                     for i, row in enumerate(schedule_data):
                         parsed_date = parse_russian_date(str(row[0]))
                         if parsed_date and parsed_date.date() == target_date.date():
                             current_time = None
                             for j in range(i, len(schedule_data)):
                                 current_row = schedule_data[j]
-
                                 if j > i and current_row and current_row[0]:
                                     next_date = parse_russian_date(str(current_row[0]))
-                                    if next_date and next_date.date() != target_date.date():
-                                        break
+                                    if next_date and next_date.date() != target_date.date(): break
                                 
                                 time_cell = current_row[1] if len(current_row) > 1 else ""
                                 if time_cell and str(time_cell).strip():
                                     current_time = str(time_cell).strip()
 
-                                # Ищем преподавателя в ячейках
                                 for col, group_name in groups.items():
                                     if col < len(current_row) and teacher_name.lower() in str(current_row[col]).lower():
-                                        subject_lines = [
-                                            line.strip().lstrip('-').strip() 
-                                            for line in str(current_row[col]).split('\n') if line.strip()
-                                        ]
+                                        subject_lines = [line.strip().lstrip('-').strip() for line in str(current_row[col]).split('\n') if line.strip()]
                                         if current_time and subject_lines:
                                             all_findings.append({
                                                 "time": current_time,
                                                 "group": group_name,
-                                                "details": subject_lines
+                                                "details": tuple(subject_lines),  # Преобразуем в tuple для хэширования
+                                                "is_even": is_even_week
                                             })
 
     return format_teacher_schedule(teacher_name, target_date, all_findings)
@@ -329,8 +309,13 @@ def format_teacher_schedule(teacher_name, date, findings):
     if not findings:
         result.append("❌ *На указанную дату пары не найдены\\.*")
     else:
-        # Убираем дубликаты и сортируем
-        unique_findings = [dict(t) for t in {tuple(d.items()) for d in findings}]
+        # ✅ ИСПРАВЛЕНИЕ: Новый, безопасный способ убрать дубликаты
+        unique_findings_str = {str(d) for d in findings}
+        unique_findings = [eval(s) for s in unique_findings_str]
+        
+        # Определяем неделю по первой найденной паре
+        is_even = unique_findings[0]['is_even']
+        result.insert(1, f"*📅 {('Четная' if is_even else 'Нечетная')} неделя*")
         
         def time_key(finding):
             try: return tuple(map(int, finding['time'].split('-')[0].strip().split(':')))
@@ -338,6 +323,7 @@ def format_teacher_schedule(teacher_name, date, findings):
         
         for item in sorted(unique_findings, key=time_key):
             result.append(f"*⏰ {escape_markdown(item['time'])}*")
+            # ✅ ДОБАВЛЕНО: Отображение группы
             result.append(f"👥 *Группа:* {escape_markdown(item['group'])}")
             for line in item['details']:
                 result.append(f"• {escape_markdown(line)}")
