@@ -309,4 +309,5 @@ async def handle_teacher_date_selection(callback_query: types.CallbackQuery, sta
     
     await callback_query.message.edit_text(schedule_text, parse_mode=ParseMode.MARKDOWN_V2)
     
-    await state.clear()```
+    await state.clear()
+
