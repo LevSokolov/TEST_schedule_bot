@@ -33,7 +33,7 @@ FACULTIES = {
     "ДиА": "ДиА"
 }
 
-# Ссылки на расписания (без изменений)
+# Ссылки на расписания
 SCHEDULE_URLS = {
     "Нечетная неделя": {
         "ДиА": { 1: "https://bb.usurt.ru/bbcswebdav/xid-21084187_1" },
@@ -102,8 +102,6 @@ SCHEDULE_URLS = {
 }
 
 
-# ===== ОБНОВЛЕННЫЕ ФУНКЦИИ РАБОТЫ С БАЗОЙ ДАННЫХ =====
-
 async def create_tables():
     """Создает таблицы users и notes в базе данных, если они не существуют."""
     conn = await asyncpg.connect(DATABASE_URL)
@@ -135,7 +133,7 @@ async def create_tables():
     finally:
         await conn.close()
 
-# --- Функции для таблицы users (без изменений) ---
+
 async def update_user_data(user_id, user_info):
     conn = await asyncpg.connect(DATABASE_URL)
     try:
@@ -150,13 +148,17 @@ async def update_user_data(user_id, user_info):
     finally:
         await conn.close()
 
+
 async def remove_user_data(user_id):
     conn = await asyncpg.connect(DATABASE_URL)
     try:
-        result = await conn.execute('DELETE FROM users WHERE user_id = $1', user_id)
-        return "DELETE 1" in result
+        await conn.execute('DELETE FROM users WHERE user_id = $1', user_id)
+        return True
+    except:
+        return False
     finally:
         await conn.close()
+
 
 async def get_user_data(user_id):
     conn = await asyncpg.connect(DATABASE_URL)
@@ -166,7 +168,6 @@ async def get_user_data(user_id):
     finally:
         await conn.close()
 
-# --- НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ЛИЧНЫМИ ЗАМЕТКАМИ ---
 
 async def add_or_update_note(user_id: int, note_date, note_text: str):
     """Добавляет или обновляет личную заметку пользователя."""
@@ -181,6 +182,7 @@ async def add_or_update_note(user_id: int, note_date, note_text: str):
     finally:
         await conn.close()
 
+
 async def get_note(user_id: int, note_date):
     """Получает личную заметку пользователя."""
     conn = await asyncpg.connect(DATABASE_URL)
@@ -192,6 +194,7 @@ async def get_note(user_id: int, note_date):
         return row['note_text'] if row else None
     finally:
         await conn.close()
+
 
 async def delete_note(user_id: int, note_date):
     """Удаляет личную заметку пользователя."""
